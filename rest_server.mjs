@@ -91,27 +91,25 @@ app.put('/new-incident', (req, res) => {
         block
     } = req.body;
 
-    // Basic validation (optional but useful)
     if (!case_number || !date || !time || !code || !incident ||
         !police_grid || !neighborhood_number || !block) {
         res.status(500).type('txt').send('Missing required field(s)');
         return;
     }
 
-    // 1. Check if case_number already exists
+    // does it exist?
     dbSelect(
         'SELECT case_number FROM Incidents WHERE case_number = ?',
         [case_number]
     )
     .then((rows) => {
         if (rows.length > 0) {
-            // case_number already exists → reject with 500
+            // if it exists send error status 500
             res.status(500).type('txt').send('Case number already exists');
-            // IMPORTANT: stop here so we don't keep chaining
             return null;
         }
 
-        // 2. Insert new incident
+        // add new incident
         return dbRun(
             `INSERT INTO Incidents
              (case_number, date, time, code, incident, police_grid, neighborhood_number, block)
@@ -129,24 +127,24 @@ app.put('/new-incident', (req, res) => {
         );
     })
     .then((result) => {
-        // If result is null, we already responded (case existed)
+        // If null case exists
         if (result === null) {
             return;
         }
 
-        // Insert successful
+        // Success
         res.status(200).type('txt').send('OK');
     })
     .catch((err) => {
         console.error(err);
-        // Only send error if we haven't responded yet
+        // send error if not responded
         if (!res.headersSent) {
             res.status(500).type('txt').send('Database error');
         }
     });
 });
 
-// DELETE request handler for new crime incident
+// DELETE handler for removing cases
 app.delete('/remove-incident', (req, res) => {
     console.log(req.body); // uploaded data
     
@@ -157,26 +155,26 @@ app.delete('/remove-incident', (req, res) => {
         return;
     }
 
-    // 1. Check if case_number exists
+    // does it exist?
     dbSelect(
         'SELECT case_number FROM Incidents WHERE case_number = ?',
         [case_number]
     )
     .then((rows) => {
         if (rows.length === 0) {
-            // case_number does not exist → reject with 500
+            // if not exist send error
             res.status(500).type('txt').send('Case number does not exist');
             return null;
         }
 
-        // 2. Delete the incident
+        // delete the incident
         return dbRun(
             'DELETE FROM Incidents WHERE case_number = ?',
             [case_number]
         );
     })
     .then((result) => {
-        // If result is null, we already responded (case didn’t exist)
+        // If null, does not exist
         if (result === null) {
             return;
         }
