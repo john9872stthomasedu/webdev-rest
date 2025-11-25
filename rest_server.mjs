@@ -102,15 +102,113 @@ app.get('/incidents', (req, res) => {
 // PUT request handler for new crime incident
 app.put('/new-incident', (req, res) => {
     console.log(req.body); // uploaded data
-    
-    res.status(200).type('txt').send('OK'); // <-- you may need to change this
+        const {
+        case_number,
+        date,
+        time,
+        code,
+        incident,
+        police_grid,
+        neighborhood_number,
+        block
+    } = req.body;
+
+    if (!case_number || !date || !time || !code || !incident ||
+        !police_grid || !neighborhood_number || !block) {
+        res.status(500).type('txt').send('Missing required field(s)');
+        return;
+    }
+
+    // does it exist?
+    dbSelect(
+        'SELECT case_number FROM Incidents WHERE case_number = ?',
+        [case_number]
+    )
+    .then((rows) => {
+        if (rows.length > 0) {
+            // if it exists send error status 500
+            res.status(500).type('txt').send('Case number already exists');
+            return null;
+        }
+
+        // add new incident
+        return dbRun(
+            `INSERT INTO Incidents
+             (case_number, date, time, code, incident, police_grid, neighborhood_number, block)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                case_number,
+                date,
+                time,
+                code,
+                incident,
+                police_grid,
+                neighborhood_number,
+                block
+            ]
+        );
+    })
+    .then((result) => {
+        // If null case exists
+        if (result === null) {
+            return;
+        }
+
+        // Success
+        res.status(200).type('txt').send('OK');
+    })
+    .catch((err) => {
+        console.error(err);
+        // send error if not responded
+        if (!res.headersSent) {
+            res.status(500).type('txt').send('Database error');
+        }
+    });
 });
 
-// DELETE request handler for new crime incident
+// DELETE handler for removing cases
 app.delete('/remove-incident', (req, res) => {
     console.log(req.body); // uploaded data
     
-    res.status(200).type('txt').send('OK'); // <-- you may need to change this
+    const { case_number } = req.body;
+
+    if (!case_number) {
+        res.status(500).type('txt').send('Missing case_number');
+        return;
+    }
+
+    // does it exist?
+    dbSelect(
+        'SELECT case_number FROM Incidents WHERE case_number = ?',
+        [case_number]
+    )
+    .then((rows) => {
+        if (rows.length === 0) {
+            // if not exist send error
+            res.status(500).type('txt').send('Case number does not exist');
+            return null;
+        }
+
+        // delete the incident
+        return dbRun(
+            'DELETE FROM Incidents WHERE case_number = ?',
+            [case_number]
+        );
+    })
+    .then((result) => {
+        // If null, does not exist
+        if (result === null) {
+            return;
+        }
+
+        res.status(200).type('txt').send('OK');
+    })
+    .catch((err) => {
+        console.error(err);
+        if (!res.headersSent) {
+            res.status(500).type('txt').send('Database error');
+        }
+    });
 });
 
 /********************************************************************
