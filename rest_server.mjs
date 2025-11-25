@@ -59,22 +59,44 @@ function dbRun(query, params) {
 // GET request handler for crime codes
 app.get('/codes', (req, res) => {
     console.log(req.query); // query object (key-value pairs after the ? in the url)
-    
-    res.status(200).type('json').send({}); // <-- you will need to change this
+    let q = 'SELECT * FROM Codes';
+    if(Object.keys(req.query).length !== 0){
+        q += ' where code = ' + req.query.code[0] + req.query.code[1] + req.query.code[2];
+        for(let i = 4; i < req.query.code.length; i = i + 4){
+            q += ' or code = ' + req.query.code[i] + req.query.code[i+1] + req.query.code[i+2];
+        }
+    }
+    db.all(q, (err, rows) => {
+        res.status(200).type('json').send(rows);
+    });
 });
 
 // GET request handler for neighborhoods
 app.get('/neighborhoods', (req, res) => {
     console.log(req.query); // query object (key-value pairs after the ? in the url)
-    
-    res.status(200).type('json').send({}); // <-- you will need to change this
+    let q = 'SELECT * FROM Neighborhoods'
+    if(Object.keys(req.query).length !== 0){
+        q += ' where neighborhood_number = '
+        for(let i = 0; i < req.query.id.length; i++){
+            if(req.query.id[i] != ','){
+                q += req.query.id[i];
+            }
+            else{
+                q += ' or neighborhood_number = ';
+            }
+        }
+    }
+    db.all(q, (err, rows) => {
+        res.status(200).type('json').send(rows);
+    });
 });
 
 // GET request handler for crime incidents
 app.get('/incidents', (req, res) => {
     console.log(req.query); // query object (key-value pairs after the ? in the url)
-    
-    res.status(200).type('json').send({}); // <-- you will need to change this
+    db.all('SELECT * FROM Incidents', (err, rows) => {
+        res.status(200).type('json').send(rows);
+    });
 });
 
 // PUT request handler for new crime incident
