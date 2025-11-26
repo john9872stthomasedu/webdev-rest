@@ -94,7 +94,75 @@ app.get('/neighborhoods', (req, res) => {
 // GET request handler for crime incidents
 app.get('/incidents', (req, res) => {
     console.log(req.query); // query object (key-value pairs after the ? in the url)
-    db.all('SELECT * FROM Incidents', (err, rows) => {
+    let q = 'SELECT * FROM Incidents';
+    let limitNum = 1000;
+    if(Object.keys(req.query).length !== 0) {
+        let first = true;
+        q += ' WHERE ';
+        for(let temp in req.query){
+            if(temp == "start_date") {
+                if(first == false){
+                    q += ' AND '
+                }
+                q += "date_time > " + '\'' + req.query.start_date + " 12:00:00" + '\'';
+                first = false;
+            }
+            else if (temp == "end_date"){
+                if(first == false){
+                    q += ' AND '
+                }
+                q += "date_time < " + '\'' + req.query.end_date + " 12:00:00" + '\'';
+                first = false;
+            }
+            else if (temp == "code") {
+                if(first == false){
+                    q += ' AND '
+                }
+                q += 'code = ' + req.query.code[0] + req.query.code[1] + req.query.code[2];
+                for(let i = 4; i < req.query.code.length; i = i + 4){
+                    q += ' or code = ' + req.query.code[i] + req.query.code[i+1] + req.query.code[i+2];
+                }
+                first = false;
+            }
+            else if (temp == "grid") {
+                if(first == false){
+                    q += ' AND '
+                }
+                q += "police_grid = "
+                for(let i = 0; i < req.query.grid.length; i++){
+                    if(req.query.grid[i] != ","){
+                        q += req.query.grid[i];
+                    }
+                    else if (req.query.grid[i] == ","){
+                        q += " OR police_grid = ";
+                    }
+                }
+                first = false;
+            }
+            else if (temp == "neighborhood") {
+                if(first == false){
+                    q += ' AND '
+                }
+                q += "neighborhood_number = ";
+                for(let i = 0; i < req.query.neighborhood.length; i++){
+                    if(req.query.neighborhood[i] != ","){
+                        q += req.query.neighborhood[i];
+                    }
+                    else if (req.query.neighborhood[i] == ","){
+                        q += " OR neighborhood_number = ";
+                    }
+                }
+                first = false;
+            }
+            else if (temp == "limit") {
+                limitNum = req.query.limit;
+                first = false;
+            }
+        }
+    }
+    q += " LIMIT " + limitNum;
+    console.log(q);
+    db.all(q, (err, rows) => {
         res.status(200).type('json').send(rows);
     });
 });
